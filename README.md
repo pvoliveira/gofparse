@@ -1,3 +1,5 @@
+![TRavis-ci](https://travis-ci.org/pvoliveira/gofparse.svg?branch=master)
+
 # gofparse
 Simple file parser written in Golang
 
