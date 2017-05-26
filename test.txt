@@ -1,0 +1,3 @@
+00line 00header              
+01line 01type 1              
+02line 0214991110000phone    

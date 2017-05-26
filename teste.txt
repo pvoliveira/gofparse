@@ -1,3 +1,0 @@
-00linha 1tipo cabecalho
-01linha 2nome do joao
-02linha 314991110000telefone
