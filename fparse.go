@@ -1,4 +1,4 @@
-package main
+package fparse
 
 import (
 	"bufio"
@@ -28,7 +28,7 @@ type FParserField struct {
 	Key         string
 }
 
-func (parser *FParser) Analize(pathFile string) (opOk chan *FParserLine, opErr chan *FParserLine, err error) {
+func (parser *FParser) Analize(pathFile string) (lnOk chan *FParserLine, lnErr chan *FParserLine, err error) {
 	var fileToParse *os.File
 
 	fileToParse, err = os.Open(pathFile)
@@ -37,13 +37,13 @@ func (parser *FParser) Analize(pathFile string) (opOk chan *FParserLine, opErr c
 	}
 	defer fileToParse.Close()
 
-	opOk = make(chan *FParserLine)
-	opErr = make(chan *FParserLine)
+	lnOk = make(chan *FParserLine)
+	lnErr = make(chan *FParserLine)
 
 	fileReader := bufio.NewReader(fileToParse)
 
-	var ln []byte
 	for {
+		var ln []byte
 		ln, _, err = fileReader.ReadLine()
 		if err != nil {
 			if err == io.EOF {
@@ -53,18 +53,13 @@ func (parser *FParser) Analize(pathFile string) (opOk chan *FParserLine, opErr c
 			return
 		}
 
-		breakLineToFields(ln, parser.LinesConfig, opOk, opErr)
+		breakLineToFields(ln, parser.LinesConfig, lnOk, lnErr)
 	}
-
 	return
 }
 
-func breakLineToFields(lineRaw []byte, linesConfig []FParserLine, successParse <-chan *FParserLine, errorParse <-chan *FParserLine) {
+func breakLineToFields(lineRaw []byte, linesConfig []FParserLine, successLine <-chan *FParserLine, errorLine <-chan *FParserLine) {
 	fmt.Printf("breakLine called to:\n%s\n", string(lineRaw))
 	//
 	return
-}
-
-func main() {
-
 }
