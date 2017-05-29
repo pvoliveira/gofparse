@@ -6,7 +6,7 @@
       "description": "header",
       "identifierField": {
         "description": "type of record",
-        "initPos": 0,
+        "initPos": 1,
         "size": 2,
         "typeData": "string",
         "key": "00"
@@ -14,13 +14,13 @@
       "fields": [
         {
           "description": "type of record",
-          "initPos": 0,
+          "initPos": 1,
           "size": 2,
           "typeData": "string"
         },
         {
           "description": "description of record",
-          "initPos": 2,
+          "initPos": 3,
           "size": 7,
           "typeData": "string"
         },
@@ -36,7 +36,7 @@
       "description": "type 1",
       "identifierField": {
         "description": "type of record",
-        "initPos": 0,
+        "initPos": 1,
         "size": 2,
         "typeData": "string",
         "key": "01"
@@ -44,13 +44,13 @@
       "fields": [
         {
           "description": "type of record",
-          "initPos": 0,
+          "initPos": 1,
           "size": 2,
           "typeData": "string"
         },
         {
           "description": "description of record",
-          "initPos": 2,
+          "initPos": 3,
           "size": 7,
           "typeData": "string"
         },
@@ -66,7 +66,7 @@
       "description": "type phone",
       "identifierField": {
         "description": "type of record",
-        "initPos": 0,
+        "initPos": 1,
         "size": 2,
         "typeData": "string",
         "key": "02"
@@ -74,13 +74,13 @@
       "fields": [
         {
           "description": "type of record",
-          "initPos": 0,
+          "initPos": 1,
           "size": 2,
           "typeData": "string"
         },
         {
           "description": "description of record",
-          "initPos": 2,
+          "initPos": 3,
           "size": 7,
           "typeData": "string"
         },

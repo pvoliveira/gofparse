@@ -3,16 +3,22 @@ package fparse
 import (
 	"bufio"
 	"fmt"
-	"io"
 	"os"
+	"sync"
 )
 
+/*
+FParser - Entity responsible by de process and container of configuration
+*/
 type FParser struct {
 	FileDescription string
 	Options         []string
 	LinesConfig     []FParserLine
 }
 
+/*
+FParserLine - Struct have the configuration to read the lines
+*/
 type FParserLine struct {
 	Description     string
 	IdentifierField FParserField
@@ -20,46 +26,121 @@ type FParserLine struct {
 	Value           string
 }
 
+/*
+FParserField - Struct have the configuration to identify a field in the line
+*/
 type FParserField struct {
 	Description string
 	InitPos     int
 	Size        int
 	TypeData    string
 	Key         string
+	Value       string
 }
 
-func (parser *FParser) Analize(pathFile string) (lnOk chan *FParserLine, lnErr chan *FParserLine, err error) {
-	var fileToParse *os.File
+// Analize - responsible by the processing of a file
+func (parser *FParser) Analize(pathFile string, chSucesses, chErrors chan<- *FParserLine) (err error) {
 
-	fileToParse, err = os.Open(pathFile)
-	if err != nil {
+	// channel which receive the lines
+	chLine := make(chan string, 10)
+
+	// // channel which receive the lines with success objs
+	// chSucesses := make(chan *FParserLine)
+	// // channel which receive the lines with error objs
+	// chErrors := make(chan *FParserLine)
+
+	wg := &sync.WaitGroup{}
+
+	// goroutine to process lines
+	wg.Add(1)
+	go func() {
+		for lineStr := range chLine {
+			breakLineToFields(lineStr, parser.LinesConfig, chSucesses, chErrors)
+		}
+		wg.Done()
+	}()
+
+	// goroutine to read de file
+	wg.Add(1)
+	go func() {
+		var fileToParse *os.File
+
+		fileToParse, err = os.Open(pathFile)
+		if err != nil {
+			wg.Done()
+			panic(err)
+		}
+		defer fileToParse.Close()
+
+		fScanner := bufio.NewScanner(fileToParse)
+		for fScanner.Scan() {
+			chLine <- fScanner.Text()
+			// breakLineToFields(fScanner.Text(), parser.LinesConfig, chSucesses, chErrors)
+		}
+		close(chLine)
+		wg.Done()
+	}()
+
+	wg.Wait()
+
+	return err
+}
+
+func breakLineToFields(strLine string, linesConfig []FParserLine, chOk, chErr chan<- *FParserLine) {
+
+	fmt.Printf("breakLine called to > %s\n", strLine)
+
+	var cfg FParserLine
+	configFounded := false
+	// iterate between the lines config to get the right config to the line
+	for i, lnCfg := range linesConfig {
+		// substring
+		if substr(strLine, lnCfg.IdentifierField.InitPos-1, lnCfg.IdentifierField.Size) == lnCfg.IdentifierField.Key {
+			fmt.Printf("Index cfg: %d, %v\n", i, lnCfg)
+			cfg = lnCfg
+			configFounded = true
+			break
+		}
+	}
+
+	if !configFounded {
+		chErr <- &FParserLine{Value: strLine}
 		return
 	}
-	defer fileToParse.Close()
 
-	lnOk = make(chan *FParserLine)
-	lnErr = make(chan *FParserLine)
+	fields := make([]FParserField, len(cfg.Fields))
 
-	fileReader := bufio.NewReader(fileToParse)
-
-	for {
-		var ln []byte
-		ln, _, err = fileReader.ReadLine()
-		if err != nil {
-			if err == io.EOF {
-				err = nil
-				break
-			}
-			return
+	// iterate between the fields to extract values from line
+	for i, fieldCfg := range cfg.Fields {
+		// substring
+		rawField := substr(strLine, fieldCfg.InitPos-1, fieldCfg.Size)
+		// instance FParseField with the value extracted
+		fields[i] = FParserField{
+			Description: fieldCfg.Description,
+			InitPos:     fieldCfg.InitPos,
+			Size:        fieldCfg.Size,
+			TypeData:    fieldCfg.TypeData,
+			Key:         fieldCfg.Key,
+			Value:       rawField,
 		}
-
-		breakLineToFields(ln, parser.LinesConfig, lnOk, lnErr)
 	}
-	return
+
+	chOk <- &FParserLine{
+		Description:     cfg.Description,
+		IdentifierField: cfg.IdentifierField,
+		Value:           strLine,
+		Fields:          fields,
+	}
 }
 
-func breakLineToFields(lineRaw []byte, linesConfig []FParserLine, successLine <-chan *FParserLine, errorLine <-chan *FParserLine) {
-	fmt.Printf("breakLine called to:\n%s\n", string(lineRaw))
-	//
-	return
+// extract chars from string using runes
+func substr(s string, pos, length int) string {
+	runes := []rune(s)
+	l := pos + length
+
+	if l > len(runes) {
+		l = len(runes)
+	}
+
+	return string(runes[pos:l])
 }

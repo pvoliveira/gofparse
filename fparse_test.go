@@ -41,7 +41,21 @@ func TestFParserAnalize(t *testing.T) {
 		t.Fail()
 	}
 
-	if _, _, err := parser.Analize("./test.txt"); err != nil {
+	chSucess := make(chan *FParserLine, 10)
+	chError := make(chan *FParserLine, 10)
+
+	go func() {
+		for {
+			select {
+			case <-chSucess:
+			case <-chError:
+			}
+		}
+	}()
+
+	if err := parser.Analize("./test.txt", chSucess, chError); err != nil {
 		t.Error(err)
+		return
 	}
+
 }
