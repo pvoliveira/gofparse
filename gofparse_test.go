@@ -1,4 +1,4 @@
-package fparse
+package gofparse
 
 import "testing"
 import "encoding/json"

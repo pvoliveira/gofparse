@@ -1,24 +1,19 @@
-package fparse
+package gofparse
 
 import (
 	"bufio"
-	"fmt"
 	"os"
 	"sync"
 )
 
-/*
-FParser - Entity responsible by de process and container of configuration
-*/
+// FParser - Entity responsible by de process and container of configuration
 type FParser struct {
 	FileDescription string
 	Options         []string
 	LinesConfig     []FParserLine
 }
 
-/*
-FParserLine - Struct have the configuration to read the lines
-*/
+// FParserLine - Struct have the configuration to read the lines
 type FParserLine struct {
 	Description     string
 	IdentifierField FParserField
@@ -26,9 +21,7 @@ type FParserLine struct {
 	Value           string
 }
 
-/*
-FParserField - Struct have the configuration to identify a field in the line
-*/
+// FParserField - Struct have the configuration to identify a field in the line
 type FParserField struct {
 	Description string
 	InitPos     int
@@ -43,11 +36,6 @@ func (parser *FParser) Analize(pathFile string, chSucesses, chErrors chan<- *FPa
 
 	// channel which receive the lines
 	chLine := make(chan string, 10)
-
-	// // channel which receive the lines with success objs
-	// chSucesses := make(chan *FParserLine)
-	// // channel which receive the lines with error objs
-	// chErrors := make(chan *FParserLine)
 
 	wg := &sync.WaitGroup{}
 
@@ -75,7 +63,6 @@ func (parser *FParser) Analize(pathFile string, chSucesses, chErrors chan<- *FPa
 		fScanner := bufio.NewScanner(fileToParse)
 		for fScanner.Scan() {
 			chLine <- fScanner.Text()
-			// breakLineToFields(fScanner.Text(), parser.LinesConfig, chSucesses, chErrors)
 		}
 		close(chLine)
 		wg.Done()
@@ -88,15 +75,12 @@ func (parser *FParser) Analize(pathFile string, chSucesses, chErrors chan<- *FPa
 
 func breakLineToFields(strLine string, linesConfig []FParserLine, chOk, chErr chan<- *FParserLine) {
 
-	fmt.Printf("breakLine called to > %s\n", strLine)
-
 	var cfg FParserLine
 	configFounded := false
 	// iterate between the lines config to get the right config to the line
-	for i, lnCfg := range linesConfig {
+	for _, lnCfg := range linesConfig {
 		// substring
 		if substr(strLine, lnCfg.IdentifierField.InitPos-1, lnCfg.IdentifierField.Size) == lnCfg.IdentifierField.Key {
-			fmt.Printf("Index cfg: %d, %v\n", i, lnCfg)
 			cfg = lnCfg
 			configFounded = true
 			break
