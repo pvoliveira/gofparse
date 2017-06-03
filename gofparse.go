@@ -3,7 +3,9 @@ package gofparse
 import (
 	"bufio"
 	"os"
+	"strconv"
 	"sync"
+	"time"
 )
 
 // FParser - Entity responsible by de process and container of configuration
@@ -28,7 +30,7 @@ type FParserField struct {
 	Size        int
 	TypeData    string
 	Key         string
-	Value       string
+	Value       interface{}
 }
 
 // Analize - responsible by the processing of a file
@@ -43,7 +45,8 @@ func (parser *FParser) Analize(pathFile string, chSucesses, chErrors chan<- *FPa
 	wg.Add(1)
 	go func() {
 		for lineStr := range chLine {
-			breakLineToFields(lineStr, parser.LinesConfig, chSucesses, chErrors)
+			wg.Add(1)
+			go breakLineToFields(wg, lineStr, parser.LinesConfig, chSucesses, chErrors)
 		}
 		wg.Done()
 	}()
@@ -52,6 +55,7 @@ func (parser *FParser) Analize(pathFile string, chSucesses, chErrors chan<- *FPa
 	wg.Add(1)
 	go func() {
 		var fileToParse *os.File
+		defer close(chLine)
 
 		fileToParse, err = os.Open(pathFile)
 		if err != nil {
@@ -64,7 +68,7 @@ func (parser *FParser) Analize(pathFile string, chSucesses, chErrors chan<- *FPa
 		for fScanner.Scan() {
 			chLine <- fScanner.Text()
 		}
-		close(chLine)
+
 		wg.Done()
 	}()
 
@@ -73,7 +77,7 @@ func (parser *FParser) Analize(pathFile string, chSucesses, chErrors chan<- *FPa
 	return err
 }
 
-func breakLineToFields(strLine string, linesConfig []FParserLine, chOk, chErr chan<- *FParserLine) {
+func breakLineToFields(wg *sync.WaitGroup, strLine string, linesConfig []FParserLine, chOk, chErr chan<- *FParserLine) {
 
 	var cfg FParserLine
 	configFounded := false
@@ -88,6 +92,7 @@ func breakLineToFields(strLine string, linesConfig []FParserLine, chOk, chErr ch
 	}
 
 	if !configFounded {
+		wg.Done()
 		chErr <- &FParserLine{Value: strLine}
 		return
 	}
@@ -98,6 +103,9 @@ func breakLineToFields(strLine string, linesConfig []FParserLine, chOk, chErr ch
 	for i, fieldCfg := range cfg.Fields {
 		// substring
 		rawField := substr(strLine, fieldCfg.InitPos-1, fieldCfg.Size)
+
+		convertedValue, _ := convertField(fieldCfg.TypeData, rawField)
+
 		// instance FParseField with the value extracted
 		fields[i] = FParserField{
 			Description: fieldCfg.Description,
@@ -105,7 +113,7 @@ func breakLineToFields(strLine string, linesConfig []FParserLine, chOk, chErr ch
 			Size:        fieldCfg.Size,
 			TypeData:    fieldCfg.TypeData,
 			Key:         fieldCfg.Key,
-			Value:       rawField,
+			Value:       convertedValue,
 		}
 	}
 
@@ -115,6 +123,7 @@ func breakLineToFields(strLine string, linesConfig []FParserLine, chOk, chErr ch
 		Value:           strLine,
 		Fields:          fields,
 	}
+	wg.Done()
 }
 
 // extract chars from string using runes
@@ -127,4 +136,20 @@ func substr(s string, pos, length int) string {
 	}
 
 	return string(runes[pos:l])
+}
+
+// convert values from string to the type configured
+func convertField(typeData, value string) (newValue interface{}, err error) {
+
+	switch typeData {
+	case "date":
+		newValue, err = time.Parse(time.RFC3339, value)
+		break
+	case "number":
+		newValue, err = strconv.ParseFloat(value, 64)
+		break
+	default:
+		newValue = value
+	}
+	return
 }

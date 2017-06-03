@@ -88,7 +88,7 @@
           "description": "phone",
           "initPos": 10,
           "size": 11,
-          "typeData": "string"
+          "typeData": "number"
         },
         {
           "description": "observation",
