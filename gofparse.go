@@ -35,7 +35,7 @@ type FParserField struct {
 }
 
 // Analize - responsible by the processing of a file
-func (parser *FParser) Analize(pathFile string, chSucesses, chErrors chan<- *FParserLine) (err error) {
+func (parser *FParser) Analize(pathFile string, chSucesses, chErrors chan *FParserLine) (err error) {
 
 	// channel which receive the lines
 	chLine := make(chan string, 10)
@@ -44,40 +44,46 @@ func (parser *FParser) Analize(pathFile string, chSucesses, chErrors chan<- *FPa
 
 	// goroutine to process lines
 	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		for lineStr := range chLine {
-			wg.Add(1)
-			go breakLineToFields(wg, lineStr, parser.LinesConfig, chSucesses, chErrors)
-		}
-	}()
+	go callBreakLine(wg, parser.LinesConfig, chLine, chSucesses, chErrors)
 
 	// goroutine to read de file
 	wg.Add(1)
-	go func() {
-		var fileToParse *os.File
-		defer close(chLine)
-		defer wg.Done()
-
-		fileToParse, err = os.Open(pathFile)
-		if err != nil {
-			wg.Done()
-			panic(err)
-		}
-		defer fileToParse.Close()
-
-		fScanner := bufio.NewScanner(fileToParse)
-		for fScanner.Scan() {
-			chLine <- fScanner.Text()
-		}
-	}()
+	go readFile(wg, pathFile, chLine)
 
 	wg.Wait()
 
 	return err
 }
 
+func readFile(wg *sync.WaitGroup, pathFile string, chLine chan<- string) (err error) {
+	var fileToParse *os.File
+	defer close(chLine)
+	defer wg.Done()
+
+	fileToParse, err = os.Open(pathFile)
+	if err != nil {
+		panic(err)
+	}
+	defer fileToParse.Close()
+
+	fScanner := bufio.NewScanner(fileToParse)
+	for fScanner.Scan() {
+		chLine <- fScanner.Text()
+	}
+
+	return
+}
+
+func callBreakLine(wg *sync.WaitGroup, linesConfig []FParserLine, chLine <-chan string, chSucesses, chErrors chan *FParserLine) {
+	defer wg.Done()
+	for lineStr := range chLine {
+		wg.Add(1)
+		go breakLineToFields(wg, lineStr, linesConfig, chSucesses, chErrors)
+	}
+}
+
 func breakLineToFields(wg *sync.WaitGroup, strLine string, linesConfig []FParserLine, chOk, chErr chan<- *FParserLine) {
+	defer wg.Done()
 
 	var cfg FParserLine
 	configFounded := false
@@ -92,7 +98,6 @@ func breakLineToFields(wg *sync.WaitGroup, strLine string, linesConfig []FParser
 	}
 
 	if !configFounded {
-		wg.Done()
 		chErr <- &FParserLine{Value: strLine}
 		return
 	}
@@ -123,7 +128,6 @@ func breakLineToFields(wg *sync.WaitGroup, strLine string, linesConfig []FParser
 		Value:           strLine,
 		Fields:          fields,
 	}
-	wg.Done()
 }
 
 // extract chars from string using runes
