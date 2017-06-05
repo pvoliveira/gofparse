@@ -21,7 +21,7 @@ type FParserLine struct {
 	Description     string
 	IdentifierField FParserField
 	Fields          []FParserField
-	Value           string
+	Value           *string
 }
 
 // FParserField - Struct have the configuration to identify a field in the line
@@ -38,7 +38,7 @@ type FParserField struct {
 func (parser *FParser) Analize(pathFile string, chSucesses, chErrors chan *FParserLine) (err error) {
 
 	// channel which receive the lines
-	chLine := make(chan string, 10)
+	chLine := make(chan *string)
 
 	wg := &sync.WaitGroup{}
 
@@ -55,7 +55,7 @@ func (parser *FParser) Analize(pathFile string, chSucesses, chErrors chan *FPars
 	return err
 }
 
-func readFile(wg *sync.WaitGroup, pathFile string, chLine chan<- string) (err error) {
+func readFile(wg *sync.WaitGroup, pathFile string, chLine chan *string) (err error) {
 	var fileToParse *os.File
 	defer close(chLine)
 	defer wg.Done()
@@ -68,13 +68,13 @@ func readFile(wg *sync.WaitGroup, pathFile string, chLine chan<- string) (err er
 
 	fScanner := bufio.NewScanner(fileToParse)
 	for fScanner.Scan() {
-		chLine <- fScanner.Text()
+		ln := fScanner.Text()
+		chLine <- &ln
 	}
-
 	return
 }
 
-func callBreakLine(wg *sync.WaitGroup, linesConfig []FParserLine, chLine <-chan string, chSucesses, chErrors chan *FParserLine) {
+func callBreakLine(wg *sync.WaitGroup, linesConfig []FParserLine, chLine chan *string, chSucesses, chErrors chan *FParserLine) {
 	defer wg.Done()
 	for lineStr := range chLine {
 		wg.Add(1)
@@ -82,7 +82,7 @@ func callBreakLine(wg *sync.WaitGroup, linesConfig []FParserLine, chLine <-chan 
 	}
 }
 
-func breakLineToFields(wg *sync.WaitGroup, strLine string, linesConfig []FParserLine, chOk, chErr chan<- *FParserLine) {
+func breakLineToFields(wg *sync.WaitGroup, strLine *string, linesConfig []FParserLine, chOk, chErr chan<- *FParserLine) {
 	defer wg.Done()
 
 	var cfg FParserLine
@@ -128,11 +128,13 @@ func breakLineToFields(wg *sync.WaitGroup, strLine string, linesConfig []FParser
 		Value:           strLine,
 		Fields:          fields,
 	}
+	return
 }
 
 // extract chars from string using runes
-func substr(s string, pos, length int) string {
-	runes := []rune(s)
+func substr(s *string, pos, length int) string {
+	value := *s
+	runes := []rune(value)
 	l := pos + length
 
 	if l > len(runes) {

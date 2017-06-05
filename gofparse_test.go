@@ -4,6 +4,7 @@ import "testing"
 import "encoding/json"
 import "os"
 import "fmt"
+import "time"
 
 func TestFParser_InitConfig(t *testing.T) {
 	var parser FParser
@@ -79,24 +80,34 @@ func TestFParser_ResultsOfAnalize(t *testing.T) {
 		t.Fail()
 	}
 
-	chSucess := make(chan *FParserLine, 10)
-	chError := make(chan *FParserLine, 10)
+	chSucess := make(chan *FParserLine, 100)
+	chError := make(chan *FParserLine, 100)
+	totalResults := 0
 
 	go func() {
 		for {
 			select {
 			case ln := <-chSucess:
 				fmt.Printf("Success: %v\n", ln.Fields)
-				break
+				totalResults++
 			case ln := <-chError:
 				fmt.Printf("Error: %v\n", ln.Fields)
-				break
+				totalResults++
+			default:
 			}
 		}
 	}()
 
 	if err := parser.Analize("./test.txt", chSucess, chError); err != nil {
 		t.Error(err)
+		return
+	}
+
+	time.Sleep(time.Second * 1)
+
+	if totalResults != 3 {
+		fmt.Printf("Error after read results (waiting 3): %d\n", totalResults)
+		t.Error()
 		return
 	}
 
