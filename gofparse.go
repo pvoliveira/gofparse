@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"os"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 )
@@ -44,11 +45,11 @@ func (parser *FParser) Analize(pathFile string, chSucesses, chErrors chan<- *FPa
 	// goroutine to process lines
 	wg.Add(1)
 	go func() {
+		defer wg.Done()
 		for lineStr := range chLine {
 			wg.Add(1)
 			go breakLineToFields(wg, lineStr, parser.LinesConfig, chSucesses, chErrors)
 		}
-		wg.Done()
 	}()
 
 	// goroutine to read de file
@@ -56,6 +57,7 @@ func (parser *FParser) Analize(pathFile string, chSucesses, chErrors chan<- *FPa
 	go func() {
 		var fileToParse *os.File
 		defer close(chLine)
+		defer wg.Done()
 
 		fileToParse, err = os.Open(pathFile)
 		if err != nil {
@@ -68,8 +70,6 @@ func (parser *FParser) Analize(pathFile string, chSucesses, chErrors chan<- *FPa
 		for fScanner.Scan() {
 			chLine <- fScanner.Text()
 		}
-
-		wg.Done()
 	}()
 
 	wg.Wait()
@@ -143,10 +143,10 @@ func convertField(typeData, value string) (newValue interface{}, err error) {
 
 	switch typeData {
 	case "date":
-		newValue, err = time.Parse(time.RFC3339, value)
+		newValue, err = time.Parse(time.RFC3339, strings.TrimSpace(value))
 		break
 	case "number":
-		newValue, err = strconv.ParseFloat(value, 64)
+		newValue, err = strconv.ParseFloat(strings.TrimSpace(value), 64)
 		break
 	default:
 		newValue = value

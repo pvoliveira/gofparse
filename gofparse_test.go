@@ -86,9 +86,11 @@ func TestFParser_ResultsOfAnalize(t *testing.T) {
 		for {
 			select {
 			case ln := <-chSucess:
-				fmt.Printf("%v\n", ln.Fields)
+				fmt.Printf("Success: %v\n", ln.Fields)
 				break
-			case <-chError:
+			case ln := <-chError:
+				fmt.Printf("Error: %v\n", ln.Fields)
+				break
 			}
 		}
 	}()
