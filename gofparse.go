@@ -22,7 +22,7 @@ type FParserLine struct {
 	Description     string
 	IdentifierField FParserField
 	Fields          []FParserField
-	Value           *string
+	Value           string
 }
 
 // FParserField - Struct have the configuration to identify a field in the line
@@ -35,14 +35,13 @@ type FParserField struct {
 	Value       interface{}
 }
 
-type fnCallBackLine func(ln *string)
+type fnCallBackLine func(ln string)
 type fnCallBackAnalize func(lnParsed *FParserLine)
 
 // Analize - responsible by the processing of a file
 func (parser *FParser) Analize(pathFile string, chParsedLine chan<- *FParserLine) (err error) {
-
 	// channel which receive the lines
-	chLine := make(chan *string, 100)
+	//chLine := make(chan string, 100)
 
 	wg := &sync.WaitGroup{}
 
@@ -50,23 +49,18 @@ func (parser *FParser) Analize(pathFile string, chParsedLine chan<- *FParserLine
 	// wg.Add(1)
 	// go callBreakLine(wg, parser.LinesConfig, chLine, chSucesses, chErrors)
 
-	wg.Add(1)
-	go (func() {
-		defer wg.Done()
-		defer close(chParsedLine)
-
-		for ln := range chLine {
-			breakLineToFields(ln, parser.LinesConfig, chParsedLine)
-		}
-	})()
+	cbLine := func(ln string) {
+		wg.Add(1)
+		go breakLineToFields(wg, ln, parser.LinesConfig, chParsedLine)
+	}
 
 	// goroutine to read de file
 	wg.Add(1)
 	go (func() {
-		defer close(chLine)
+		//defer close(chLine)
 		defer wg.Done()
 		fmt.Println("Reading file...")
-		readFile(pathFile, chLine)
+		readFile(pathFile, cbLine)
 		fmt.Println("Reading file... Done!")
 	})()
 
@@ -77,7 +71,7 @@ func (parser *FParser) Analize(pathFile string, chParsedLine chan<- *FParserLine
 	return
 }
 
-func readFile(pathFile string, chLines chan<- *string) (err error) {
+func readFile(pathFile string, cbLine fnCallBackLine) (err error) {
 	var fileToParse *os.File
 
 	fileToParse, err = os.Open(pathFile)
@@ -88,13 +82,14 @@ func readFile(pathFile string, chLines chan<- *string) (err error) {
 
 	fScanner := bufio.NewScanner(fileToParse)
 	for fScanner.Scan() {
-		ln := fScanner.Text()
-		chLines <- &ln
+		go cbLine(fScanner.Text())
 	}
 	return
 }
 
-func breakLineToFields(strLine *string, linesConfig []FParserLine, chParsedLine chan<- *FParserLine) {
+func breakLineToFields(wg *sync.WaitGroup, strLine string, linesConfig []FParserLine, chParsedLine chan<- *FParserLine) {
+	defer wg.Done()
+
 	var cfg FParserLine
 	configFounded := false
 	// iterate between the lines config to get the right config to the line
@@ -141,9 +136,8 @@ func breakLineToFields(strLine *string, linesConfig []FParserLine, chParsedLine 
 }
 
 // extract chars from string using runes
-func substr(s *string, pos, length int) string {
-	value := *s
-	runes := []rune(value)
+func substr(s string, pos, length int) string {
+	runes := []rune(s)
 	l := pos + length
 
 	if l > len(runes) {

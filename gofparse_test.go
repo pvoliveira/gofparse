@@ -83,7 +83,6 @@ func TestFParser_ResultsOfAnalize(t *testing.T) {
 
 		//fileMutex.Lock()
 		//defer fileMutex.Unlock()
-
 		for lnParsed := range chSucess {
 			fmt.Printf("Success: %v\n", lnParsed.Fields)
 			totalResults++
@@ -91,6 +90,7 @@ func TestFParser_ResultsOfAnalize(t *testing.T) {
 	})()
 
 	err = parser.Analize("./test.txt", chSucess)
+	close(chSucess)
 	if err != nil {
 		t.Error(err)
 	}
