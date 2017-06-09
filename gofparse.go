@@ -2,6 +2,7 @@ package gofparse
 
 import (
 	"bufio"
+	"fmt"
 	"os"
 	"strconv"
 	"strings"
@@ -34,57 +35,66 @@ type FParserField struct {
 	Value       interface{}
 }
 
+type fnCallBackLine func(ln *string)
+type fnCallBackAnalize func(lnParsed *FParserLine)
+
 // Analize - responsible by the processing of a file
-func (parser *FParser) Analize(pathFile string, chSucesses, chErrors chan *FParserLine) (err error) {
+func (parser *FParser) Analize(pathFile string, chParsedLine chan<- *FParserLine) (err error) {
 
 	// channel which receive the lines
-	chLine := make(chan *string)
+	chLine := make(chan *string, 100)
 
 	wg := &sync.WaitGroup{}
 
 	// goroutine to process lines
+	// wg.Add(1)
+	// go callBreakLine(wg, parser.LinesConfig, chLine, chSucesses, chErrors)
+
 	wg.Add(1)
-	go callBreakLine(wg, parser.LinesConfig, chLine, chSucesses, chErrors)
+	go (func() {
+		defer wg.Done()
+		defer close(chParsedLine)
+
+		for ln := range chLine {
+			breakLineToFields(ln, parser.LinesConfig, chParsedLine)
+		}
+	})()
 
 	// goroutine to read de file
 	wg.Add(1)
-	go readFile(wg, pathFile, chLine)
+	go (func() {
+		defer close(chLine)
+		defer wg.Done()
+		fmt.Println("Reading file...")
+		readFile(pathFile, chLine)
+		fmt.Println("Reading file... Done!")
+	})()
 
 	wg.Wait()
 
-	return err
+	fmt.Println("Analize done!")
+
+	return
 }
 
-func readFile(wg *sync.WaitGroup, pathFile string, chLine chan *string) (err error) {
+func readFile(pathFile string, chLines chan<- *string) (err error) {
 	var fileToParse *os.File
-	defer close(chLine)
-	defer wg.Done()
 
 	fileToParse, err = os.Open(pathFile)
 	if err != nil {
-		panic(err)
+		return err
 	}
 	defer fileToParse.Close()
 
 	fScanner := bufio.NewScanner(fileToParse)
 	for fScanner.Scan() {
 		ln := fScanner.Text()
-		chLine <- &ln
+		chLines <- &ln
 	}
 	return
 }
 
-func callBreakLine(wg *sync.WaitGroup, linesConfig []FParserLine, chLine chan *string, chSucesses, chErrors chan *FParserLine) {
-	defer wg.Done()
-	for lineStr := range chLine {
-		wg.Add(1)
-		go breakLineToFields(wg, lineStr, linesConfig, chSucesses, chErrors)
-	}
-}
-
-func breakLineToFields(wg *sync.WaitGroup, strLine *string, linesConfig []FParserLine, chOk, chErr chan<- *FParserLine) {
-	defer wg.Done()
-
+func breakLineToFields(strLine *string, linesConfig []FParserLine, chParsedLine chan<- *FParserLine) {
 	var cfg FParserLine
 	configFounded := false
 	// iterate between the lines config to get the right config to the line
@@ -98,7 +108,7 @@ func breakLineToFields(wg *sync.WaitGroup, strLine *string, linesConfig []FParse
 	}
 
 	if !configFounded {
-		chErr <- &FParserLine{Value: strLine}
+		chParsedLine <- &FParserLine{Value: strLine}
 		return
 	}
 
@@ -122,13 +132,12 @@ func breakLineToFields(wg *sync.WaitGroup, strLine *string, linesConfig []FParse
 		}
 	}
 
-	chOk <- &FParserLine{
+	chParsedLine <- &FParserLine{
 		Description:     cfg.Description,
 		IdentifierField: cfg.IdentifierField,
 		Value:           strLine,
 		Fields:          fields,
 	}
-	return
 }
 
 // extract chars from string using runes
