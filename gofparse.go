@@ -7,6 +7,8 @@ import (
 	"os"
 	"sync"
 
+	"runtime"
+
 	utilgofparse "github.com/pvoliveira/gofparse/util"
 )
 
@@ -49,7 +51,7 @@ func (parser *FParser) Analize(pathFile string, chParsedLine chan *FParserLine) 
 		}
 	}
 
-	reader := func(pathFile string, lnQueue chan string) {
+	reader := func(pathFile string, lnQueue chan string, done chan bool) {
 		var fileToParse *os.File
 
 		fileToParse, err = os.Open(pathFile)
@@ -62,22 +64,25 @@ func (parser *FParser) Analize(pathFile string, chParsedLine chan *FParserLine) 
 			lnQueue <- fScanner.Text()
 		}
 		fileToParse.Close()
+		done <- true
 	}
 
 	queue := make(chan string)
+	done := make(chan bool, 1)
 	wg := &sync.WaitGroup{}
 
-	for i := 0; i < 1; i++ {
+	for i := 0; i < runtime.NumCPU(); i++ {
 		wg.Add(1)
 		go worker(queue, chParsedLine, wg)
 	}
 
-	reader(pathFile, queue)
+	reader(pathFile, queue, done)
 	close(queue)
 
 	wg.Wait()
 	//close(chParsedLine)
 
+	<-done
 	fmt.Println("Analize done!")
 
 	return
