@@ -2,12 +2,12 @@ package gofparse
 
 import (
 	"bufio"
+	"errors"
 	"fmt"
 	"os"
-	"strconv"
-	"strings"
 	"sync"
-	"time"
+
+	utilgofparse "github.com/pvoliveira/gofparse/util"
 )
 
 // FParser - Entity responsible by de process and container of configuration
@@ -35,67 +35,61 @@ type FParserField struct {
 	Value       interface{}
 }
 
-type fnCallBackLine func(ln string)
-type fnCallBackAnalize func(lnParsed *FParserLine)
-
 // Analize - responsible by the processing of a file
-func (parser *FParser) Analize(pathFile string, chParsedLine chan<- *FParserLine) (err error) {
-	// channel which receive the lines
-	//chLine := make(chan string, 100)
+func (parser *FParser) Analize(pathFile string, chParsedLine chan *FParserLine) (err error) {
 
-	wg := &sync.WaitGroup{}
-
-	// goroutine to process lines
-	// wg.Add(1)
-	// go callBreakLine(wg, parser.LinesConfig, chLine, chSucesses, chErrors)
-
-	cbLine := func(ln string) {
-		wg.Add(1)
-		go breakLineToFields(wg, ln, parser.LinesConfig, chParsedLine)
+	worker := func(queue chan string, out chan *FParserLine, wg *sync.WaitGroup) {
+		defer wg.Done()
+		for line := range queue {
+			if r, errWrk := breakLineToFields(line, parser.LinesConfig); errWrk != nil {
+				out <- &FParserLine{Value: errWrk.Error()}
+			} else {
+				out <- r
+			}
+		}
 	}
 
-	// goroutine to read de file
-	wg.Add(1)
-	go (func() {
-		//defer close(chLine)
-		defer wg.Done()
-		fmt.Println("Reading file...")
-		readFile(pathFile, cbLine)
-		fmt.Println("Reading file... Done!")
-	})()
+	reader := func(pathFile string, lnQueue chan string) {
+		var fileToParse *os.File
+
+		fileToParse, err = os.Open(pathFile)
+		if err != nil {
+			return
+		}
+
+		fScanner := bufio.NewScanner(fileToParse)
+		for fScanner.Scan() {
+			lnQueue <- fScanner.Text()
+		}
+		fileToParse.Close()
+	}
+
+	queue := make(chan string)
+	wg := &sync.WaitGroup{}
+
+	for i := 0; i < 1; i++ {
+		wg.Add(1)
+		go worker(queue, chParsedLine, wg)
+	}
+
+	reader(pathFile, queue)
+	close(queue)
 
 	wg.Wait()
+	//close(chParsedLine)
 
 	fmt.Println("Analize done!")
 
 	return
 }
 
-func readFile(pathFile string, cbLine fnCallBackLine) (err error) {
-	var fileToParse *os.File
-
-	fileToParse, err = os.Open(pathFile)
-	if err != nil {
-		return err
-	}
-	defer fileToParse.Close()
-
-	fScanner := bufio.NewScanner(fileToParse)
-	for fScanner.Scan() {
-		go cbLine(fScanner.Text())
-	}
-	return
-}
-
-func breakLineToFields(wg *sync.WaitGroup, strLine string, linesConfig []FParserLine, chParsedLine chan<- *FParserLine) {
-	defer wg.Done()
-
+func breakLineToFields(strLine string, linesConfig []FParserLine) (line *FParserLine, err error) {
 	var cfg FParserLine
 	configFounded := false
 	// iterate between the lines config to get the right config to the line
 	for _, lnCfg := range linesConfig {
 		// substring
-		if substr(strLine, lnCfg.IdentifierField.InitPos-1, lnCfg.IdentifierField.Size) == lnCfg.IdentifierField.Key {
+		if utilgofparse.Substr(strLine, lnCfg.IdentifierField.InitPos-1, lnCfg.IdentifierField.Size) == lnCfg.IdentifierField.Key {
 			cfg = lnCfg
 			configFounded = true
 			break
@@ -103,8 +97,7 @@ func breakLineToFields(wg *sync.WaitGroup, strLine string, linesConfig []FParser
 	}
 
 	if !configFounded {
-		chParsedLine <- &FParserLine{Value: strLine}
-		return
+		return nil, errors.New("Line configuration not found")
 	}
 
 	fields := make([]FParserField, len(cfg.Fields))
@@ -112,9 +105,9 @@ func breakLineToFields(wg *sync.WaitGroup, strLine string, linesConfig []FParser
 	// iterate between the fields to extract values from line
 	for i, fieldCfg := range cfg.Fields {
 		// substring
-		rawField := substr(strLine, fieldCfg.InitPos-1, fieldCfg.Size)
+		rawField := utilgofparse.Substr(strLine, fieldCfg.InitPos-1, fieldCfg.Size)
 
-		convertedValue, _ := convertField(fieldCfg.TypeData, rawField)
+		convertedValue, _ := utilgofparse.ConvertField(fieldCfg.TypeData, rawField)
 
 		// instance FParseField with the value extracted
 		fields[i] = FParserField{
@@ -127,38 +120,10 @@ func breakLineToFields(wg *sync.WaitGroup, strLine string, linesConfig []FParser
 		}
 	}
 
-	chParsedLine <- &FParserLine{
+	return &FParserLine{
 		Description:     cfg.Description,
 		IdentifierField: cfg.IdentifierField,
 		Value:           strLine,
 		Fields:          fields,
-	}
-}
-
-// extract chars from string using runes
-func substr(s string, pos, length int) string {
-	runes := []rune(s)
-	l := pos + length
-
-	if l > len(runes) {
-		l = len(runes)
-	}
-
-	return string(runes[pos:l])
-}
-
-// convert values from string to the type configured
-func convertField(typeData, value string) (newValue interface{}, err error) {
-
-	switch typeData {
-	case "date":
-		newValue, err = time.Parse(time.RFC3339, strings.TrimSpace(value))
-		break
-	case "number":
-		newValue, err = strconv.ParseFloat(strings.TrimSpace(value), 64)
-		break
-	default:
-		newValue = value
-	}
-	return
+	}, nil
 }

@@ -4,7 +4,6 @@ import "testing"
 import "encoding/json"
 import "os"
 import "fmt"
-import "sync"
 
 func TestFParser_InitConfig(t *testing.T) {
 	var parser FParser
@@ -43,7 +42,7 @@ func TestFParser_CallAnalize(t *testing.T) {
 		t.Fail()
 	}
 
-	chSucess := make(chan *FParserLine, 100)
+	chSucess := make(chan *FParserLine)
 
 	if err := parser.Analize("./test.txt", chSucess); err != nil {
 		t.Error(err)
@@ -70,19 +69,15 @@ func TestFParser_ResultsOfAnalize(t *testing.T) {
 		t.Fail()
 	}
 
-	chSucess := make(chan *FParserLine, 100)
+	chSucess := make(chan *FParserLine, 10)
 
-	wg := &sync.WaitGroup{}
+	//wg := &sync.WaitGroup{}
 	//var fileMutex sync.Mutex
 
 	totalResults := 0
 
-	wg.Add(1)
 	go (func() {
-		defer wg.Done()
 
-		//fileMutex.Lock()
-		//defer fileMutex.Unlock()
 		for lnParsed := range chSucess {
 			fmt.Printf("Success: %v\n", lnParsed.Fields)
 			totalResults++
@@ -90,13 +85,10 @@ func TestFParser_ResultsOfAnalize(t *testing.T) {
 	})()
 
 	err = parser.Analize("./test.txt", chSucess)
-	close(chSucess)
 	if err != nil {
 		t.Error(err)
 	}
-
-	wg.Wait()
-	//time.Sleep(time.Second * 1)
+	close(chSucess)
 
 	if totalResults != 3 {
 		fmt.Printf("Error after read results (waiting 3): %d\n", totalResults)
