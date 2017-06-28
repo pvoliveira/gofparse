@@ -2,7 +2,6 @@ package gofparse
 
 import (
 	"encoding/json"
-	"fmt"
 	"os"
 	"sync"
 	"testing"
@@ -88,8 +87,8 @@ func TestFParser_ResultsOfAnalize(t *testing.T) {
 	wg.Add(1)
 	go (func() {
 		defer wg.Done()
-		for lnParsed := range chSucess {
-			fmt.Printf("Success: %v\n", lnParsed.Fields)
+		for _ = range chSucess {
+			//fmt.Printf("Success: %v\n", lnParsed.Fields)
 			totalResults++
 		}
 	})()
@@ -103,7 +102,7 @@ func TestFParser_ResultsOfAnalize(t *testing.T) {
 	wg.Wait()
 
 	if totalResults != 3 {
-		fmt.Printf("Error after read results (waiting 3): %d\n", totalResults)
+		//fmt.Printf("Error after read results (waiting 3): %d\n", totalResults)
 		t.Error()
 		return
 	}

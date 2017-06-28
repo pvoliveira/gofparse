@@ -3,7 +3,6 @@ package gofparse
 import (
 	"bufio"
 	"errors"
-	"fmt"
 	"os"
 	"sync"
 
@@ -79,9 +78,6 @@ func (parser *FParser) Analize(pathFile string, chParsedLine chan *FParserLine) 
 	close(queue)
 
 	wg.Wait()
-	//close(chParsedLine)
-
-	fmt.Println("Analize done!")
 
 	return nil
 }
