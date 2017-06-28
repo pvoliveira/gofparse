@@ -51,11 +51,11 @@ func (parser *FParser) Analize(pathFile string, chParsedLine chan *FParserLine) 
 		}
 	}
 
-	reader := func(pathFile string, lnQueue chan string, done chan bool) {
+	reader := func(pathFile string, lnQueue chan string) {
 		var fileToParse *os.File
 
-		fileToParse, err = os.Open(pathFile)
-		if err != nil {
+		fileToParse, errFile := os.Open(pathFile)
+		if errFile != nil {
 			return
 		}
 
@@ -64,11 +64,10 @@ func (parser *FParser) Analize(pathFile string, chParsedLine chan *FParserLine) 
 			lnQueue <- fScanner.Text()
 		}
 		fileToParse.Close()
-		done <- true
 	}
 
-	queue := make(chan string)
-	done := make(chan bool, 1)
+	queue := make(chan string, 1)
+	//done := make(chan bool, 1)
 	wg := &sync.WaitGroup{}
 
 	for i := 0; i < runtime.NumCPU(); i++ {
@@ -76,16 +75,15 @@ func (parser *FParser) Analize(pathFile string, chParsedLine chan *FParserLine) 
 		go worker(queue, chParsedLine, wg)
 	}
 
-	reader(pathFile, queue, done)
+	reader(pathFile, queue)
 	close(queue)
 
 	wg.Wait()
 	//close(chParsedLine)
 
-	<-done
 	fmt.Println("Analize done!")
 
-	return
+	return nil
 }
 
 func breakLineToFields(strLine string, linesConfig []FParserLine) (line *FParserLine, err error) {
