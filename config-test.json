@@ -6,7 +6,7 @@
       "description": "header",
       "identifierField": {
         "description": "type of record",
-        "initPos": 1,
+        "initpos": 1,
         "size": 2,
         "typeData": "string",
         "key": "00"

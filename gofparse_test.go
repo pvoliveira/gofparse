@@ -1,11 +1,29 @@
 package gofparse
 
 import (
+	"context"
 	"encoding/json"
+	"fmt"
 	"os"
+	"os/signal"
 	"sync"
 	"testing"
+	"time"
 )
+
+func handlingInterrupt(ctx context.Context, cancel context.CancelFunc) {
+	scInterrupt := make(chan os.Signal, 1)
+	signal.Notify(scInterrupt, os.Interrupt)
+
+	select {
+	case <-scInterrupt:
+		fmt.Println("User requested cancelation")
+	}
+
+	cancel()
+
+	os.Exit(1)
+}
 
 func TestFParser_InitConfig(t *testing.T) {
 	var parser FParser
@@ -52,7 +70,14 @@ func TestFParser_CallAnalize(t *testing.T) {
 		}
 	})()
 
-	if err := parser.Analize("./test.txt", chSucess); err != nil {
+	ctx := context.Background()
+	ctx, fnCancel := context.WithCancel(ctx)
+
+	go handlingInterrupt(ctx, fnCancel)
+
+	<-time.After(time.Second * 5)
+
+	if err := parser.Analize(ctx, "./test.txt", chSucess); err != nil {
 		t.Error(err)
 		return
 	}
@@ -93,7 +118,14 @@ func TestFParser_ResultsOfAnalize(t *testing.T) {
 		}
 	})()
 
-	err = parser.Analize("./test.txt", chSucess)
+	ctx := context.Background()
+	ctx, fnCancel := context.WithCancel(ctx)
+
+	go handlingInterrupt(ctx, fnCancel)
+
+	<-time.After(time.Second * 5)
+
+	err = parser.Analize(ctx, "./test.txt", chSucess)
 	if err != nil {
 		t.Error(err)
 	}

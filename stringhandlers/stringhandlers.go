@@ -1,4 +1,4 @@
-package util
+package stringhandlers
 
 import (
 	"strconv"
@@ -6,12 +6,12 @@ import (
 	"time"
 )
 
-// ConvertField - Convert values from string to the type configured
-func ConvertField(typeData, value string) (newValue interface{}, err error) {
+// ConvertField converts the values from string to the type configured
+func ConvertField(typeData, format, value string) (newValue interface{}, err error) {
 
 	switch typeData {
 	case "date":
-		newValue, err = time.Parse(time.RFC3339, strings.TrimSpace(value))
+		newValue, err = time.Parse(format, strings.TrimSpace(value))
 		break
 	case "number":
 		newValue, err = strconv.ParseFloat(strings.TrimSpace(value), 64)
@@ -22,7 +22,7 @@ func ConvertField(typeData, value string) (newValue interface{}, err error) {
 	return
 }
 
-// Substr - Extract chars from string using runes
+// Substr extracts the chars from string using runes
 func Substr(s string, pos, length int) string {
 	runes := []rune(s)
 	l := pos + length
