@@ -64,7 +64,7 @@ func TestFParser_CallAnalize(t *testing.T) {
 	chSucess := make(chan FParserLine, 1)
 
 	go (func() {
-		for _ = range chSucess {
+		for range chSucess {
 
 		}
 	})()
@@ -107,7 +107,7 @@ func TestFParser_ResultsOfAnalize(t *testing.T) {
 	wg.Add(1)
 	go (func() {
 		defer wg.Done()
-		for _ = range chSucess {
+		for range chSucess {
 			//fmt.Printf("Success: %v\n", lnParsed.Fields)
 			totalResults++
 		}

@@ -51,7 +51,7 @@ func main() {
 	wg.Add(1)
 	go (func() {
 		defer wg.Done()
-		for _ = range chSucess {
+		for range chSucess {
 			// to implement outputs
 		}
 	})()
