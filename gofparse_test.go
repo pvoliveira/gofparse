@@ -78,7 +78,6 @@ func TestFParser_CallAnalize(t *testing.T) {
 		t.Error(err)
 		return
 	}
-
 }
 
 func TestFParser_ResultsOfAnalize(t *testing.T) {
@@ -132,5 +131,4 @@ func TestFParser_ResultsOfAnalize(t *testing.T) {
 		t.Error()
 		return
 	}
-
 }

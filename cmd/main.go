@@ -65,13 +65,13 @@ func main() {
 
 	err = parser.Analize(ctx, *pathInputFile, chSucess)
 	if err != nil {
+		close(chSucess)
 		fmt.Printf("Error on trying parse file: %s\n", err.Error())
 		os.Exit(3)
 	}
 	close(chSucess)
 
 	wg.Wait()
-
 }
 
 // gracefully exit on ctrl+c / interrupt signal
