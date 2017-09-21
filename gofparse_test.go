@@ -8,7 +8,6 @@ import (
 	"os/signal"
 	"sync"
 	"testing"
-	"time"
 )
 
 func handlingInterrupt(ctx context.Context, cancel context.CancelFunc) {
@@ -62,7 +61,7 @@ func TestFParser_CallAnalize(t *testing.T) {
 		t.Fail()
 	}
 
-	chSucess := make(chan *FParserLine, 1)
+	chSucess := make(chan FParserLine, 1)
 
 	go (func() {
 		for _ = range chSucess {
@@ -74,8 +73,6 @@ func TestFParser_CallAnalize(t *testing.T) {
 	ctx, fnCancel := context.WithCancel(ctx)
 
 	go handlingInterrupt(ctx, fnCancel)
-
-	<-time.After(time.Second * 5)
 
 	if err := parser.Analize(ctx, "./test.txt", chSucess); err != nil {
 		t.Error(err)
@@ -102,10 +99,9 @@ func TestFParser_ResultsOfAnalize(t *testing.T) {
 		t.Fail()
 	}
 
-	chSucess := make(chan *FParserLine, 10)
+	chSucess := make(chan FParserLine, 10)
 
 	wg := &sync.WaitGroup{}
-	//var fileMutex sync.Mutex
 
 	totalResults := 0
 
@@ -122,8 +118,6 @@ func TestFParser_ResultsOfAnalize(t *testing.T) {
 	ctx, fnCancel := context.WithCancel(ctx)
 
 	go handlingInterrupt(ctx, fnCancel)
-
-	<-time.After(time.Second * 5)
 
 	err = parser.Analize(ctx, "./test.txt", chSucess)
 	if err != nil {

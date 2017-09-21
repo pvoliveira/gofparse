@@ -39,9 +39,9 @@ type FParserField struct {
 }
 
 // Analize parse the file following the configs
-func (parser *FParser) Analize(ctx context.Context, pathFile string, chParsedLine chan *FParserLine) (err error) {
+func (parser *FParser) Analize(ctx context.Context, pathFile string, chParsedLine chan FParserLine) (err error) {
 
-	worker := func(ctxW context.Context, queue chan string, out chan *FParserLine, wg *sync.WaitGroup) {
+	worker := func(ctxW context.Context, queue chan string, out chan FParserLine, wg *sync.WaitGroup) {
 		defer wg.Done()
 		// for line := range queue {
 		// 	if r, errWrk := breakLineToFields(line, parser.LinesConfig); errWrk != nil {
@@ -56,7 +56,7 @@ func (parser *FParser) Analize(ctx context.Context, pathFile string, chParsedLin
 				return
 			default:
 				if r, errWrk := breakLineToFields(line, parser.LinesConfig); errWrk != nil {
-					out <- &FParserLine{Value: errWrk.Error()}
+					out <- FParserLine{Value: errWrk.Error()}
 				} else {
 					out <- r
 				}
@@ -102,7 +102,7 @@ func (parser *FParser) Analize(ctx context.Context, pathFile string, chParsedLin
 	return nil
 }
 
-func breakLineToFields(strLine string, linesConfig []FParserLine) (line *FParserLine, err error) {
+func breakLineToFields(strLine string, linesConfig []FParserLine) (line FParserLine, err error) {
 	var cfg FParserLine
 	configFounded := false
 	// iterate between the lines config to get the right config to the line
@@ -116,7 +116,7 @@ func breakLineToFields(strLine string, linesConfig []FParserLine) (line *FParser
 	}
 
 	if !configFounded {
-		return nil, errors.New("Line configuration not found")
+		return FParserLine{}, errors.New("Line configuration not found")
 	}
 
 	fields := make([]FParserField, len(cfg.Fields))
@@ -139,7 +139,7 @@ func breakLineToFields(strLine string, linesConfig []FParserLine) (line *FParser
 		}
 	}
 
-	return &FParserLine{
+	return FParserLine{
 		Description:     cfg.Description,
 		IdentifierField: cfg.IdentifierField,
 		Value:           strLine,

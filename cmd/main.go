@@ -44,7 +44,7 @@ func main() {
 		os.Exit(2)
 	}
 
-	chSucess := make(chan *gofparse.FParserLine, 10)
+	chSucess := make(chan gofparse.FParserLine, 10)
 
 	wg := &sync.WaitGroup{}
 
