@@ -14,7 +14,7 @@ func ConvertField(typeData, format, value string) (newValue interface{}, err err
 		newValue, err = time.Parse(format, strings.TrimSpace(value))
 		break
 	case "number":
-		newValue, err = strconv.ParseFloat(strings.TrimSpace(value), 64)
+		newValue, err = strconv.ParseInt(strings.TrimSpace(value), 0, 64)
 		break
 	default:
 		newValue = value
