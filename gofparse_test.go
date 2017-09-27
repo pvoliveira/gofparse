@@ -157,7 +157,7 @@ func TestStringHandlers_ConvertField(t *testing.T) {
 		t.Error("Fail to parse date value (err): " + err.Error())
 	}
 
-	if !reflect.DeepEqual(time.Date(2017, time.September, 23, 0, 0, 0, 0, time.Local), retDate) {
+	if time.Date(2017, time.September, 23, 0, 0, 0, 0, time.UTC) != retDate {
 		t.Error("Fail to parse date value (values)")
 	}
 
@@ -166,7 +166,7 @@ func TestStringHandlers_ConvertField(t *testing.T) {
 		t.Error("Fail to parse number value (err): " + err.Error())
 	}
 
-	if !reflect.DeepEqual(retInt, 120120) {
+	if reflect.ValueOf(retInt).Int() != 120120 {
 		t.Error("Fail to parse number value (values)")
 	}
 
