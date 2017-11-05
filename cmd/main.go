@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
+	"strings"
 	"sync"
 	"time"
 
@@ -22,26 +23,31 @@ func main() {
 	var pathConfigFile *string
 	var pathInputFile *string
 
-	pathConfigFile = flag.String("config", "", "config file like doc (.json)")
+	pathConfigFile = flag.String("config", "config.yml", "config file with definition to read (.yml)")
 	pathInputFile = flag.String("input", "", "text file (.txt)")
 	flag.Parse()
 
 	if configFile, err = os.Open(*pathConfigFile); err != nil {
 		fmt.Printf("Error on trying open config file: \nFile %s\n Error: %s\n", *pathConfigFile, err.Error())
-		os.Exit(1)
+		os.Exit(-1)
 	}
 	defer configFile.Close()
 
 	if inputFile, err = os.Open(*pathInputFile); err != nil {
 		fmt.Printf("Error on trying open input file: %s\n", err.Error())
-		os.Exit(1)
+		os.Exit(-1)
 	}
-	inputFile.Close()
+
+	if strings.Index(inputFile.Name(), ".txt") == -1 {
+		inputFile.Close()
+		fmt.Printf("Wrong file type.")
+		os.Exit(-1)
+	}
 
 	err = json.NewDecoder(configFile).Decode(&parser)
 	if err != nil {
 		fmt.Printf("Configuration file is incorrect: %s\n", err.Error())
-		os.Exit(2)
+		os.Exit(-2)
 	}
 
 	chSucess := make(chan gofparse.FParserLine, 10)
@@ -67,7 +73,7 @@ func main() {
 	if err != nil {
 		close(chSucess)
 		fmt.Printf("Error on trying parse file: %s\n", err.Error())
-		os.Exit(3)
+		os.Exit(-3)
 	}
 	close(chSucess)
 
@@ -86,5 +92,5 @@ func handlingInterrupt(ctx context.Context, cancel context.CancelFunc) {
 
 	cancel()
 
-	os.Exit(99)
+	os.Exit(-99)
 }

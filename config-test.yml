@@ -1,0 +1,55 @@
+file-description: default configuration to read test file
+options:
+lines-config: 
+  - description: header
+    identifier-field-index: 1
+    fields: 
+      - description: record type
+        init-pos: 1
+        size: 2
+        type-data: string
+        key: 00
+      - description: description of record
+        init-pos: 3
+        size: 7
+        type-data: string
+      - description: observation
+        init-pos: 10
+        size: 20
+        type-data: string
+  - description: type 1
+    identifier-field-index: 1
+    fields: 
+      - description: record type
+        init-pos: 1
+        size: 2
+        type-data: string
+        key: 01
+      - description: description of record
+        init-pos: 3
+        size: 7
+        type-data: string
+      - description: observation
+        init-pos: 10
+        size: 20
+        type-data: string
+  - description: type phone
+    identifier-field-index: 1
+    fields: 
+      - description: record type
+        init-pos: 1
+        size: 2
+        type-data: string
+        key: 02
+      - description: description of record
+        init-pos: 3
+        size: 7
+        type-data: string
+      - description: phone
+        init-pos: 10
+        size: 11
+        type-data: number
+      - description: observation
+        init-pos: 21
+        size: 9
+        type-data: string

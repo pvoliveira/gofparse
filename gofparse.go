@@ -14,28 +14,28 @@ import (
 
 // FParser is the struct responsible by de process and contains of configuration
 type FParser struct {
-	FileDescription string        `json:"filedescription"`
-	Options         []string      `json:"options"`
-	LinesConfig     []FParserLine `json:"linesconfig"`
+	FileDescription string        `json:"file-description" yaml:"file-description,omitempty"`
+	Options         []string      `json:"options" yaml:"options,omitempty"`
+	LinesConfig     []FParserLine `json:"lines-config" yaml:"lines-config"`
 }
 
 // FParserLine is the struct that hold the configuration to read the lines
 type FParserLine struct {
-	Description     string         `json:"description"`
-	IdentifierField FParserField   `json:"identifierfield"`
-	Fields          []FParserField `json:"fields"`
-	Value           string         `json:"value"`
+	Description     string         `json:"description,omitempty" yaml:"description"`
+	IdentifierField int            `json:"identifier-field-index" yaml:"identifier-field-index"`
+	Fields          []FParserField `json:"fields" yaml:"fields"`
+	Value           string         `json:"value" yaml:"value,omitempty"`
 }
 
 // FParserField is the struct that hold the configuration to identify a field in the line
 type FParserField struct {
-	Description string      `json:"description"`
-	InitPos     int         `json:"initpos"`
-	Size        int         `json:"size"`
-	TypeData    string      `json:"typedata"`
-	Format      string      `json:"format"`
-	Key         string      `json:"key"`
-	Value       interface{} `json:"value"`
+	Description string      `json:"description" yaml:"description,omitempty"`
+	InitPos     int         `json:"init-pos" yaml:"init-pos"`
+	Size        int         `json:"size" yaml:"size"`
+	TypeData    string      `json:"type-data" yaml:"type-data"`
+	Format      string      `json:"format" yaml:"format,omitempty"`
+	Key         string      `json:"key" yaml:"key,omitempty"`
+	Value       interface{} `json:"value" yaml:"value,omitempty"`
 }
 
 // Analize parse the file following the configs
@@ -107,8 +107,9 @@ func breakLineToFields(strLine string, linesConfig []FParserLine) (line FParserL
 	configFounded := false
 	// iterate between the lines config to get the right config to the line
 	for _, lnCfg := range linesConfig {
+
 		// substring
-		if stringhandlers.Substr(strLine, lnCfg.IdentifierField.InitPos-1, lnCfg.IdentifierField.Size) == lnCfg.IdentifierField.Key {
+		if stringhandlers.Substr(strLine, lnCfg.Fields[lnCfg.IdentifierField-1].InitPos-1, lnCfg.Fields[lnCfg.IdentifierField-1].Size) == lnCfg.Fields[lnCfg.IdentifierField-1].Key {
 			cfg = lnCfg
 			configFounded = true
 			break

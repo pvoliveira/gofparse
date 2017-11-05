@@ -2,12 +2,14 @@ package gofparse
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"os"
 	"os/signal"
 	"sync"
 	"testing"
+
+	"gopkg.in/yaml.v2"
 )
 
 func handlingInterrupt(ctx context.Context, cancel context.CancelFunc) {
@@ -27,14 +29,17 @@ func handlingInterrupt(ctx context.Context, cancel context.CancelFunc) {
 func TestFParser_InitConfig(t *testing.T) {
 	var parser FParser
 
-	rawConfig, err := os.Open("./config-test.json")
+	rawConfig, err := os.Open("./config-test.yml")
 	if err != nil {
 		t.Error(err)
 	}
 	defer rawConfig.Close()
 
-	err = json.NewDecoder(rawConfig).Decode(&parser)
+	dat, err := ioutil.ReadFile("./config-test.yml")
+
+	err = yaml.Unmarshal(dat, &parser)
 	if err != nil {
+		fmt.Printf("Error %v\n", err)
 		t.Error(err)
 	}
 
@@ -46,13 +51,15 @@ func TestFParser_InitConfig(t *testing.T) {
 func TestFParser_CallAnalize(t *testing.T) {
 	var parser FParser
 
-	rawConfig, err := os.Open("./config-test.json")
+	rawConfig, err := os.Open("./config-test.yml")
 	if err != nil {
 		t.Error(err)
 	}
 	defer rawConfig.Close()
 
-	err = json.NewDecoder(rawConfig).Decode(&parser)
+	dat, err := ioutil.ReadFile("./config-test.yml")
+
+	err = yaml.Unmarshal(dat, &parser)
 	if err != nil {
 		t.Error(err)
 	}
@@ -83,13 +90,15 @@ func TestFParser_CallAnalize(t *testing.T) {
 func TestFParser_ResultsOfAnalize(t *testing.T) {
 	var parser FParser
 
-	rawConfig, err := os.Open("./config-test.json")
+	rawConfig, err := os.Open("./config-test.yml")
 	if err != nil {
 		t.Error(err)
 	}
 	defer rawConfig.Close()
 
-	err = json.NewDecoder(rawConfig).Decode(&parser)
+	dat, err := ioutil.ReadFile("./config-test.yml")
+
+	err = yaml.Unmarshal(dat, &parser)
 	if err != nil {
 		t.Error(err)
 	}
